@@ -1,13 +1,12 @@
 /*
-	1.paper_dict\term_dict\author_dict 并没什么用，所以并未读入处理。
-	2.朴素贝叶斯中的没有标签的样本不做训练和测试。
-	编译时：
-		1.用TEST：得到测试集占数据集20%-40%的准确率
-			结果存于当前目录下的"NaiveBayes_score.txt"
-			格式：index(比例) + "\t" + 准确率
-		2.用GETPROB：针对生成的训练集和测试集得到相应的paper的标签以及标签的概率
-			结果存于当前目录下的"paper_real_label_prob.txt"
-			格式：paper + "\t" + true_label + "\t" + calcu_label + "\t" + prob
+	1.Naivebayes doesn't train or test the samples without labels
+	when compiling：
+		1.using TEST：get the accuracy rate when the test set occupies %20 to %40 of the data set 
+			output file: "NaiveBayes_score.txt"
+			format：the_proportion_of_the_test_set + "\t" + accuracy_rate
+		2.using GETPROB：get the most likely label and the probability of the label
+			output file: "paper_real_label_prob.txt"
+			format：paper + "\t" + true_label + "\t" + calcu_label + "\t" + prob
 */
 
 #include<fstream>
@@ -27,9 +26,6 @@ using namespace std;
 set<int> testSet;
 set<int> trainSet;
 
-/*
-	数据集
-*/
 struct Datasets
 {
 	//  key: paper  val: label
@@ -95,20 +91,20 @@ struct Datasets
 
 struct Bayes
 {
-	//id1：label id2：word  double：prob
-	// beta(id1,id2) = double
+	//int id1：label, int id2：word, double res：prob
+	// beta(id1,id2) = res
 	map<int, map<int, double> > beta;
 
-	//label 出现的概率
+	//the probability of the occurrence of each label
 	map<int, double> pai;
 
-	//统计词频
+	//word frequency
 	map<int, map<int, int> > wordINum_in_labelJ;
 	map<int, int> wordsNum_in_labelJ;
 
 	Datasets* dataset;
 
-	//构造函数中统计词频
+	// get the word frequency in constructor
 	Bayes(Datasets& dataset)
 	{
 		this->dataset = &dataset;
@@ -138,7 +134,8 @@ struct Bayes
 		cout << "NaiveBayes data got!\n";
 	}
 
-	//训练：各label出现的概率(pai[label]),各label中各个term出现的概率(beta[label][term])
+	//train：get the probability of each label(pai[label]) and the probability of the occurrence
+	// of each term in each label(beta[label][term])
 	void train()
 	{
 		cout << "NaiveBayes training..." << endl;
@@ -165,8 +162,8 @@ struct Bayes
 		}
 	}
 
-	//根据得到的pai和beta给出一片论文类别的判断
-	//返回label + prob
+	//according to the pai and beta ,get the most likely label of a paper and the probability of the label 
+	//return label + prob
 	pair<int,double> checkLabelForOne(int paper)
 	{
 		map<int, int>::iterator labelIter = dataset->labelSet.begin();
@@ -196,7 +193,7 @@ struct Bayes
 		return make_pair(bestlabel, maxprob/allprob);
 	}
 
-	//针对测试集：得到所应用的朴素贝叶斯的准确率
+	//get the accuracy of NaiveBayes on the test set
 	double test()
 	{
 		set<int>::iterator testSetIter = testSet.begin();
@@ -231,7 +228,7 @@ struct Bayes
 	}
 };
 
-//随机选取(%index)的数据作为测试集(testSet)，剩下的为训练集(trainSet)
+//select testSet and trainSet
 void getRandom(Datasets& dataset, int index)
 {
 	srand(time(NULL));
