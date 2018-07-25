@@ -3,10 +3,10 @@ close all
 
 
 % Make labels y, and term features X
-y = load('paper_label.txt','-ascii');
+y = load('..//Cora//paper_label.txt','-ascii');
 y = int32(y(:,2)');
 [nInstances,nNodes] = size(y);
-y_map = load('label_map.txt','-ascii');
+y_map = load('..//Cora//label_map.txt','-ascii');
 mapLength = size(y_map,1);
 % map the labels to the top-class ones
 for i = 1:nInstances
@@ -26,7 +26,7 @@ y = y + 1;
 %% Make edgeStruct
 nStates = max(y);
 adj = zeros(nNodes,nNodes);
-edgeTmp = load('PP.txt','ascii');
+edgeTmp = load('..//Cora//PP.txt','ascii');
 nEdges = size(edgeTmp,1);
 for i = 1:nEdges
     adj(edgeTmp(i,1),edgeTmp(i,2)) = i;
@@ -47,7 +47,7 @@ maxState = max(nStates);
 
 %% Training (with node features, but no edge features)
 % make term features X using only nFeatures words
-Xtmp = load('PT.txt','-ascii');
+Xtmp = load('..//Cora//PT.txt','-ascii');
 nFeatures = 100;
 Xnode = zeros(nInstances,nFeatures,nNodes);
 Xedge = ones(nInstances,1,nEdges);
