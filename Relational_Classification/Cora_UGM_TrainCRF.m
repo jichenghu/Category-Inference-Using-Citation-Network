@@ -11,12 +11,13 @@ clear all
 close all
 
 
+
 %% Make labels y
 
 y = load('paper_label.txt','-ascii');
 y = int32(y(:,2)');
 [nInstances,nNodes] = size(y);
-y_map = load('label_map.txt','-ascii');
+y_map = load('..//Cora//label_map.txt','-ascii');
 mapLength = size(y_map,1);
 % map the labels to the top-class ones
 for i = 1:nInstances
@@ -35,8 +36,10 @@ y(1:disp_len)
 
 %% Make edgeStruct
 nStates = max(y);
+
 adj_single = zeros(nNodes,nNodes);
 edgeTmp = load('PP.txt','ascii');
+
 nEdges = size(edgeTmp,1);
 for i = 1:nEdges
     adj_single(edgeTmp(i,1),edgeTmp(i,2)) = 1;
@@ -59,6 +62,7 @@ for i = 1:nEdges
     end
 end
 fprintf('%d edges connect same labels, %d edges connect different labels\n',same,diff);
+
 
 %% make term features X
 Xtmp = load('PT.txt','-ascii');
