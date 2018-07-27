@@ -1,9 +1,20 @@
+% This code is used to train a Conditional Random Field on Cora dataset to 
+% predict the catagories of papers. 
+% Author : Gnaiqing
+% TODO LIST:
+% change the edgeMap to consider different kinds of edges
+% use the mex version of CRF_NLL_HIDDEN to accerlerate the inference
+% include more words and author feature (which can be very slow if mex is
+% not used )
+
 clear all
 close all
 
 
-% Make labels y, and term features X
-y = load('..//Cora//paper_label.txt','-ascii');
+
+%% Make labels y
+
+y = load('paper_label.txt','-ascii');
 y = int32(y(:,2)');
 [nInstances,nNodes] = size(y);
 y_map = load('..//Cora//label_map.txt','-ascii');
@@ -19,40 +30,48 @@ for i = 1:nInstances
         end
     end
 end
-% treat no label as another label
-y = y + 1;
-
+disp_len = 20;
+fprintf('the first %d labels are:\n',disp_len);
+y(1:disp_len)
 
 %% Make edgeStruct
 nStates = max(y);
-adj = zeros(nNodes,nNodes);
-edgeTmp = load('..//Cora//PP.txt','ascii');
+
+adj_single = zeros(nNodes,nNodes);
+edgeTmp = load('PP.txt','ascii');
+
 nEdges = size(edgeTmp,1);
 for i = 1:nEdges
-    adj(edgeTmp(i,1),edgeTmp(i,2)) = i;
+    adj_single(edgeTmp(i,1),edgeTmp(i,2)) = 1;
 end
-adj = adj+adj';   
+adj = adj_single+adj_single';   
 edgeStruct = UGM_makeEdgeStruct(adj,nStates);
 nEdges = edgeStruct.nEdges;
 maxState = max(nStates);
+fprintf('the first %d edges are:\n',disp_len);
+edgeStruct.edgeEnds(1:disp_len,:);
 
-% check correctness of edgeStruct
-% [row,col] = find(adj~=0);
-% num = size(row); 
-% if (nEdges ~= num/2)
-%    fprintf('edgeStruct error\n');
-%    return;
-% end
-%% inferrence using features trained before
+% check what the edges looks like
+same = 0;
+diff = 0;
+for i = 1:nEdges
+    if(y(edgeStruct.edgeEnds(i,1))==y(edgeStruct.edgeEnds(i,2)))
+        same = same+1;
+    else
+        diff = diff+1;
+    end
+end
+fprintf('%d edges connect same labels, %d edges connect different labels\n',same,diff);
 
-%% Training (with node features, but no edge features)
-% make term features X using only nFeatures words
-Xtmp = load('..//Cora//PT.txt','-ascii');
-nFeatures = 100;
+
+%% make term features X
+Xtmp = load('PT.txt','-ascii');
+% HINT: nFeatures decides how many words will be used. You can simply
+% change it to include more or less words (even 0).
+nFeatures = 100; 
 Xnode = zeros(nInstances,nFeatures,nNodes);
 Xedge = ones(nInstances,1,nEdges);
 nWords = size(Xtmp,1);
-% we suppose nInstance==1 here for Cora
 for i = 1:nWords
     if(Xtmp(i,2) <= nFeatures)
         Xnode(1,Xtmp(i,2),Xtmp(i,1)) = Xnode(1,Xtmp(i,2),Xtmp(i,1))+1;
@@ -60,167 +79,104 @@ for i = 1:nWords
 end        
 Xnode = [ones(nInstances,1,nNodes) Xnode];
 nNodeFeatures = size(Xnode,2);
+fprintf('the features for the first %d terms are:\n',disp_len);
+permute(Xnode(1,:,1:disp_len),[3,2,1])
 
-% Make nodeMap
+%% Make nodeMap and edgeMap
 nodeMap = zeros(nNodes,maxState,nNodeFeatures,'int32');
 cnt = 0;
 for f = 1:nNodeFeatures
-    for k = 1:maxState-1
+    for k = 1:maxState
         cnt = cnt+1;
         nodeMap(:,k,f) = cnt;
     end
 end
 nNodeParams = cnt;
-% Make edgeMap
 edgeMap = zeros(maxState,maxState,nEdges,'int32');
 for i = 1:maxState
     for j = 1:maxState
-        if( i==maxState && j ==maxState) 
-            continue;
-        end
         cnt = cnt + 1;
         edgeMap(i,j,:) = cnt;
     end
 end
-
-% Initialize weights
-nParams = max([nodeMap(:);edgeMap(:)]);
-w = rand(nParams,1);
-
-% Optimize
-LB = zeros(nParams,1);
-LB(1:nNodeParams,1) = -Inf;
-UB = repelem(Inf,nParams)';
-funObj = @(w)UGM_CRF_NLL(w,Xnode,Xedge,y,nodeMap,edgeMap,edgeStruct,@UGM_Infer_LBP);
-w = minConf_TMP(funObj,w,LB,UB)
+fprintf('%d parameters for nodes, %d parameters for edges\n',nNodeParams,cnt-nNodeParams);
 fprintf('(paused)\n');
 pause
 
-%% Training (no features)
-
-% Make simple bias features
-Xnode = ones(nInstances,1,nNodes);
-Xedge = ones(nInstances,1,nEdges);
-
-% Make nodeMap
-ising = 0; %  use ising approximation or not
-tied = 1; % suppose all parameters of edges are same or not
-[nodeMap,edgeMap] = UGM_makeCRFmaps(Xnode,Xedge,edgeStruct,ising,tied);
-% nodeMap = zeros(nNodes,maxState,'int32');
-% nodeMap(:,1) = 1;
-
-% edgeMap = zeros(maxState,maxState,nEdges,'int32');
-% edgeMap(1,1,:) = 2;
-% edgeMap(2,1,:) = 3;
-% edgeMap(1,2,:) = 4;
-
-% Initialize weights
-nParams = max([nodeMap(:);edgeMap(:)]);
-nNodeParams = max(nodeMap(:));
-w = rand(nParams,1)*100;
-LB = zeros(nParams,1);
-UB = zeros(nParams,1);
-LB(1:nNodeParams,:) = -Inf;
-UB = repelem(Inf,nParams)';
-% Optimize
-funObj = @(w)UGM_CRF_NLL(w,Xnode,Xedge,y,nodeMap,edgeMap,edgeStruct,@UGM_Infer_LBP);
-w = minConf_TMP(funObj,w,LB,UB)
-% w = minFunc(@UGM_CRF_NLL,randn(size(w)),[],Xnode,Xedge,y,nodeMap,edgeMap,edgeStruct,@UGM_Infer_Junction)
-
-% Example of making potentials for the first training example
-instance = 1;
-[nodePot,edgePot] = UGM_CRF_makePotentials(w,Xnode,Xedge,nodeMap,edgeMap,edgeStruct,instance);
-nodePot(1,:)
-edgePot(:,:,1);
-fprintf('(paused)\n');
-pause
-
-
-%% Training (with edge features)
-
-% Make edge features
-sharedFeatures = 1:13;
-Xedge = UGM_makeEdgeFeatures(Xnode,edgeStruct.edgeEnds,sharedFeatures);
-nEdgeFeatures = size(Xedge,2);
-
-% Make edgeMap
-edgeMap = zeros(maxState,maxState,nEdges,nEdgeFeatures,'int32');
-for edgeFeat = 1:nEdgeFeatures
-    for s1 = 1:2
-        for s2 = 1:2
-            f = f+1;
-            edgeMap(s1,s2,:,edgeFeat) = f;
-        end
-    end
-end
-
+%% Training 
 % Initialize weights
 nParams = max([nodeMap(:);edgeMap(:)]);
 w = zeros(nParams,1);
-
 % Optimize
-UGM_CRF_NLL(w,Xnode,Xedge,y,nodeMap,edgeMap,edgeStruct,@UGM_Infer_Chain);
-w = minFunc(@UGM_CRF_NLL,w,[],Xnode,Xedge,y,nodeMap,edgeMap,edgeStruct,@UGM_Infer_Chain)
+funObj = @(w)UGM_CRF_NLL_Hidden(w,Xnode,Xedge,y,nodeMap,edgeMap,edgeStruct,@UGM_Infer_LBP);
+options = [];
+options.method = 'qnewton';
+options.MaxIter = 100;
+options.LS = 2; % choose Line Search type 
+options.LS_init = 2; % Choose step length
+options.To1X = 1e-9; % Choose termination tolerance
+
+% HINT: if you want to use a trained feature to do inference directly, then
+% comment the minFunc and save command, and use load instead.
+% w = minFunc(funObj,w,options);
+save('w_100f_2e.mat','w');
+% load('w_100f_qs.mat');
 fprintf('(paused)\n');
 pause
 
-%% Do decoding/infence/sampling in learned model (given features)
+%% Do decoding/infence in learned model (given features)
 
-% We will look at a case in December
-i = 11;
-[nodePot,edgePot] = UGM_CRF_makePotentials(w,Xnode,Xedge,nodeMap,edgeMap,edgeStruct,i);
-
-decode = UGM_Decode_Chain(nodePot,edgePot,edgeStruct)
-
-[nodeBel,edgeBel,logZ] = UGM_Infer_Chain(nodePot,edgePot,edgeStruct);
-nodeBel
-
-samples = UGM_Sample_Chain(nodePot,edgePot,edgeStruct);
-figure(1);
-imagesc(samples')
-title('Samples from CRF model (for December)');
+[nodePot,edgePot] = UGM_CRF_makePotentials(w,Xnode,Xedge,nodeMap,edgeMap,edgeStruct);
+% get marginals for each edge and node
+[nodeBelLBP,edgeBelLBP,logZ] = UGM_Infer_LBP(nodePot,edgePot,edgeStruct);
+% nodeBelLBP(1:100,:)
+% obtain the maximum of marginals
+maxOfMarginalsLBPdecode = UGM_Decode_MaxOfMarginals(nodePot,edgePot,edgeStruct,@UGM_Infer_LBP);
+correct_num = sum(maxOfMarginalsLBPdecode == y');
+fprintf('Marginal:%d of %d labels are correct,correct rate is %f\n',correct_num,nNodes,correct_num/nNodes);
+% obtain MAP inference
+decodeLBP = UGM_Decode_LBP(nodePot,edgePot,edgeStruct);
+correct_num = sum(decodeLBP == y');
+fprintf('MAP:%d of %d labels are correct,correct rate is %f\n',correct_num,nNodes,correct_num/nNodes);
 fprintf('(paused)\n');
 pause
 
 %% Do conditional decoding/inference/sampling in learned model (given features)
-
-clamped = zeros(nNodes,1);
-clamped(1:2) = 2;
-
-condDecode = UGM_Decode_Conditional(nodePot,edgePot,edgeStruct,clamped,@UGM_Decode_Chain)
-condNodeBel = UGM_Infer_Conditional(nodePot,edgePot,edgeStruct,clamped,@UGM_Infer_Chain)
-condSamples = UGM_Sample_Conditional(nodePot,edgePot,edgeStruct,clamped,@UGM_Sample_Chain);
-
-figure(2);
-imagesc(condSamples')
-title('Conditional samples from CRF model (for December)');
-fprintf('(paused)\n');
-pause
-
-%% Now see what samples in July look like
-
-XtestNode = [1 0 0 0 0 0 0 1 0 0 0 0 0]; % Turn on bias and indicator variable for July
-XtestNode = repmat(XtestNode,[1 1 nNodes]);
-XtestEdge = UGM_makeEdgeFeatures(XtestNode,edgeStruct.edgeEnds,sharedFeatures);
-
-[nodePot,edgePot] = UGM_CRF_makePotentials(w,XtestNode,XtestEdge,nodeMap,edgeMap,edgeStruct);
-
-samples = UGM_Sample_Chain(nodePot,edgePot,edgeStruct);
-figure(3);
-imagesc(samples')
-title('Samples from CRF model (for July)');
-fprintf('(paused)\n');
-pause
-
-%% Training with L2-regularization
-
-% Set up regularization parameters
-lambda = 10*ones(size(w));
-lambda(1) = 0; % Don't penalize node bias variable
-lambda(14:17) = 0; % Don't penalize edge bias variable
-regFunObj = @(w)penalizedL2(w,@UGM_CRF_NLL,lambda,Xnode,Xedge,y,nodeMap,edgeMap,edgeStruct,@UGM_Infer_Chain);
-
-% Optimize
-w = zeros(nParams,1);
-w = minFunc(regFunObj,w);
-NLL = UGM_CRF_NLL(w,Xnode,Xedge,y,nodeMap,edgeMap,edgeStruct,@UGM_Infer_Chain)
+nRepeat = 1;
+for kase = 1:nRepeat
+    clamped = y'; % nNodes * 1
+    nTestSet = 1000;
+    test = zeros(nTestSet,1);
+    cnt = 0;
+    while (cnt < nTestSet)    
+        ind = int32(rand()*nNodes);
+        if(ind == 0) 
+            ind = ind + 1;
+        end
+        if(y(ind) > 0)
+            cnt = cnt + 1;
+            test(cnt,1) = ind;
+            clamped(ind,1) = 0;
+        end
+    end 
+    % get conditional marginals for node end edge
+    [condnodeBel,condedgeBel,logZ] = UGM_Infer_Conditional(nodePot,edgePot,edgeStruct,clamped,@UGM_Infer_LBP);
+    % condnodeBel(1:100,:)
+    correct_num = 0;
+    [~,maxPos] = max(condnodeBel,[],2);
+    for i = 1:nTestSet
+        if(maxPos(test(i)) == y(test(i)))
+            correct_num = correct_num + 1;
+        end
+    end
+    fprintf('Cond Marginal:%d of %d labels are correct,correct rate is %f\n',correct_num,nTestSet,correct_num/nTestSet);
+    % conditional decode process
+    condDecode = UGM_Decode_Conditional(nodePot,edgePot,edgeStruct,clamped,@UGM_Decode_LBP);
+    correct_num = 0;
+    for i = 1:nTestSet
+        if(condDecode(test(i)) == y(test(i)))
+            correct_num = correct_num + 1;
+        end
+    end
+    fprintf('Cond MAP:%d of %d labels are correct,correct rate is %f\n\n',correct_num,nTestSet,correct_num/nTestSet);
+end
