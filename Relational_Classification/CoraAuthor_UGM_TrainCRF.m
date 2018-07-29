@@ -68,18 +68,64 @@ y(1:disp_len)
 
 %% Make edgeStruct
 nStates = max(y);
-adj_single = zeros(nNodes,nNodes);
-edgeTmp = load('PP.txt','ascii');
-nEdges = size(edgeTmp,1);
+PA = load('PA.txt','ascii');
+nEdges = size(PA,1); 
+nAuthors = max(PA(:,2));
+adj_PA = zeros(nNodes,nAuthors);
 for i = 1:nEdges
-    adj_single(edgeTmp(i,1),edgeTmp(i,2)) = 1;
+    adj_PA(PA(i,1),PA(i,2)) = 1;
 end
-adj = adj_single+adj_single';   
+nWorks = sum(adj_PA);
+adj = zeros(nNodes,nNodes);
+for i = 1:nAuthors
+    nodeList = find(adj_PA(:,i)~=0);
+    len = length(nodeList);
+    for j = 1:len-1
+        adj(nodeList(j),nodeList(j+1)) = 1;
+        adj(nodeList(j+1),nodeList(j)) = 1;
+    end
+%     for j = 1:len
+%         for k = j+1:len
+%             adj(nodeList(j),nodeList(k)) = 1;
+%             adj(nodeList(k),nodeList(j)) = 1;
+%         end
+%     end
+end
+% need to change
+% adj(1,:) = 1;
+% adj(:,1) = 1;
+% adj(1,1) = 0;
+
+neighbors = sum(adj);
+nGroups = 10;
+nWidth = 3;
+data = zeros(1,nGroups);
+for i = 1:nGroups-1
+    data(i) = sum((neighbors>=(i-1)*nWidth)&(neighbors<i*nWidth));
+end
+data(nGroups) = sum(neighbors >= (nGroups-1)*nWidth);
+minX = 0:nWidth:(nGroups-1)*nWidth;
+figure(1);
+bar(minX,data);
+title('size of neighbors');
+
+data = zeros(1,nGroups);
+for i = 1:nGroups-1
+    data(i) = sum((nWorks>=(i-1)*nWidth)&(nWorks<i*nWidth));
+end
+data(nGroups) = sum(nWorks >= (nGroups-1)*nWidth);
+minX = 0:nWidth:(nGroups-1)*nWidth;
+figure(2);
+bar(minX,data);
+title('number of papers');
+
 edgeStruct = UGM_makeEdgeStruct(adj,nStates);
 nEdges = edgeStruct.nEdges;
 maxState = max(nStates);
-fprintf('the first %d edges are:\n',disp_len);
-edgeStruct.edgeEnds(1:disp_len,:);
+fprintf('%d Edges in total, the first %d edges are:\n',nEdges,disp_len);
+edgeStruct.edgeEnds(1:disp_len,:)
+fprintf('(paused)');
+pause
 
 %% make term features and edge features 
 Xtmp = load('PT.txt','-ascii');
@@ -99,7 +145,7 @@ nNodeFeatures = size(Xnode,2);
 fprintf('the features for the first %d terms are:\n',disp_len);
 permute(Xnode(1,:,1:disp_len),[3,2,1])
 
-nEdgeFeatures = 3; % set to 3 to take asymmetry into consideration
+nEdgeFeatures = 1; 
 Xedge = zeros(nInstances,nEdgeFeatures,nEdges);
 for i = 1:nEdges
     v1 = edgeStruct.edgeEnds(i,1);
@@ -149,7 +195,7 @@ for i = 1:maxState
     end
 end
 fprintf('%d parameters for nodes, %d parameters for edges\n',nNodeParams,cnt-nNodeParams);
-filename = sprintf('w_%dn_%de.mat',nNodeParams,cnt-nNodeParams);
+filename = sprintf('w_Author_%dn_%de.mat',nNodeParams,cnt-nNodeParams);
 fprintf('(paused)\n');
 pause
 
@@ -173,9 +219,9 @@ options.To1X = 1e-9; % Choose termination tolerance
 
 % HINT: if you want to use a trained feature to do inference directly, then
 % comment the minFunc and save command, and use load instead.
-% w = minFunc(funObj,w,options);
-% save(filename,'w');
-load(filename);
+w = minFunc(funObj,w,options);
+save(filename,'w');
+% load(filename);
 fprintf('(paused)\n');
 pause
 
@@ -221,8 +267,11 @@ for i = 1:nTestSet
     end
 end
 fprintf('Cond MAP:%d of %d labels are correct,correct rate is %f\n\n',correct_num,nTestSet,correct_num/nTestSet);
+fprintf('(paused)\n');
+pause
+
 %% store the conditional inference result for further use
-output = fopen('CRF_paper_real_label_prob.txt','w');
+output = fopen('CRFAuthor_paper_real_label_prob.txt','w');
 % prob = [double((1:nNodes)') double(y_origin') double(condDecode  condnodeBel];
 for i = 1:nNodes
     fprintf(output,'%d,%d,%d',i,y_origin(i),condDecode(i));
