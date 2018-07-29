@@ -3,7 +3,7 @@
 ### Authors
 We are all students from the school of Electronic Engineering and Computer Science of Peking University. Every member contributed equally and the following names are in alphabetical order.
 * Xiuping Cui
-* Naiqing Guan
+* Naiqing Guan(guannq@pku.edu.cn)(pinaggle)
 * [Ziqi Pang](https://www.linkedin.com/in/ziqi-pang-8b5992158/)(pangziqi@pku.edu.cn)(xingyueyaohui)
 * Pengfei Wang
 
