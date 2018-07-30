@@ -23,7 +23,6 @@ set<int> trainSet;
 // Randomly select (%index)data as test data and the remain are training data
 void getRandom(int index)
 {
-	srand(time(NULL));
 	testSet.clear();
 	trainSet.clear();
 	int testNum = DATANUM*index / 100.0;
@@ -64,28 +63,33 @@ int main()
 {
 	string infile = "paper_labels.txt";
 	int index;
-	//cout << "input file: ";
-	//cin >> infile;
 	cout << "test num(%index): ";
 	cin >> index;
 	getdata(infile);
-	string trainSetFile = "train.txt";
-	string testSetFile = "test.txt";
-	getRandom(index);
-	ofstream out = ofstream(trainSetFile);
-	set<int>::iterator pos = trainSet.begin();
-	while (pos != trainSet.end())
+	char num[] = {'0','1','2','3','4','5','6','7','8','9'};
+	for(int i = 0;i<10;++i)
 	{
-		out << *pos << endl;
-		pos++;
+		string trainSetFile = "./Sets/train";
+		string testSetFile = "./Sets/test";
+		string Filetype = ".txt";
+		trainSetFile +=num[i] + Filetype;
+		testSetFile += num[i] + Filetype;
+		getRandom(index);
+		ofstream out = ofstream(trainSetFile);
+		set<int>::iterator pos = trainSet.begin();
+		while (pos != trainSet.end())
+		{
+			out << *pos << endl;
+			pos++;
+		}
+		out.close();
+		out = ofstream(testSetFile);
+		pos = testSet.begin();
+		while (pos != testSet.end())
+		{
+			out << *pos << endl;
+			pos++;
+		}
+		out.close();
 	}
-	out.close();
-	out = ofstream(testSetFile);
-	pos = testSet.begin();
-	while (pos != testSet.end())
-	{
-		out << *pos << endl;
-		pos++;
-	}
-	out.close();
 }
