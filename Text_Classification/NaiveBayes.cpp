@@ -54,12 +54,10 @@ struct Datasets
 	}
 
 	//get data(papers, terms, labels)
-	Datasets(string PL_filePath,string PT_filePath)
+	Datasets(string PL_filePath,string PT_filePath,string PA_filePath)
 	{
 		ifstream readin;
 		int id1, id2;
-
-		cout << "get Dataset..." << endl;
 
 		openfile(PL_filePath, readin);
 		while (readin >> id1 >> id2)
@@ -72,7 +70,6 @@ struct Datasets
 			}
 		}
 		closefile(readin);
-		cout << "papers_and_labels got!\n";
 
 		openfile(PT_filePath, readin);
 		while (readin >> id1 >> id2)
@@ -83,7 +80,16 @@ struct Datasets
 			readin >> id1;
 		}
 		closefile(readin);
-		cout << "papers_and_terms got!\n";
+
+		openfile(PA_filePath, readin);
+		while (readin >> id1 >> id2)
+		{
+			papers_and_terms[id1].insert(id2);
+			terms_and_papers[id2].insert(id1);
+			termSet.insert(id2);
+			readin >> id1;
+		}
+		closefile(readin);
 
 	}
 
@@ -213,6 +219,42 @@ struct Bayes
 		return score;
 	}
 
+	void storeLabelForOne(int paper, ofstream&out)
+	{
+		map<int, int>::iterator labelIter = dataset->labelSet.begin();
+		double allprob = 0;
+		double maxprob = 0;
+		double bestlabel = 0;
+		vector<double> probs;
+		while (labelIter != dataset->labelSet.end())
+		{
+			int label = labelIter->first;
+			set<int>::iterator paperTermIter = (dataset->papers_and_terms)[paper].begin();
+			double prob = pai[label];
+			while (paperTermIter != (dataset->papers_and_terms)[paper].end())
+			{
+				prob *= beta[label][*paperTermIter];
+				paperTermIter++;
+			}
+			allprob += prob;
+			probs.push_back(prob);
+			if (prob > maxprob)
+			{
+				maxprob = prob;
+				bestlabel = labelIter->first;
+			}
+			labelIter++;
+		}
+		int size = probs.size() - 1;
+		assert(bestlabel > 0);
+		out << bestlabel << ',';
+		for (int i = 0; i < size; ++i)
+		{
+			out << probs[i] / allprob << ',';
+		}
+		out << probs[size] / allprob << '\n';
+	}
+	
 	void storeLabelAndProb(string filename)
 	{
 		map<int, int>::iterator paLaIter = dataset->papers_and_labels.begin();
@@ -220,18 +262,17 @@ struct Bayes
 		assert(out.is_open());
 		while (paLaIter != dataset->papers_and_labels.end())
 		{
-			pair<int, double>ans = checkLabelForOne(paLaIter->first);
-			out << paLaIter->first << "\t" << paLaIter->second
-				<< "\t" << ans.first << "\t" << ans.second << "\n";
+			out << paLaIter->first << ",";
+			out << paLaIter->second << ',';
 			paLaIter++;
 		}
+		out.close();
 	}
 };
 
 //select testSet and trainSet
 void getRandom(Datasets& dataset, int index)
 {
-	srand(time(NULL));
 	testSet.clear();
 	trainSet.clear();
 	int testNum = DATANUM*index / 100.0;
