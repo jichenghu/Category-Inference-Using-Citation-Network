@@ -10,7 +10,18 @@ We are all students from the school of Electronic Engineering and Computer Scien
 
 ### Overview
 This is a course project on graphical probability model. 
-In this project, we will inference the catagories of computer science papers using their citaion networks. 
-To test the performance of our algorithm, we will run it on datase [CORA](https://relational.fit.cvut.cz/dataset/CORA) and compare it to other approaches. 
-Finally, we will commit our code and write a report in the form of a SIG conference paper. 
+In this project, we inference the catagories of computer science papers using their titles, authors, and cited network. 
+To test the performance of our algorithm, we run it on datase [CORA](https://relational.fit.cvut.cz/dataset/CORA). 
+
+### Structure
+* *Cora* contains the Cora dataset.
+* *Preprocessing* contains the test set and the upper classes of papers.
+* *Text_Classification* contains a naive-bayes approach to classify papers using their titles and authors.
+* *Relational_Classification* contains a CRF appraoch to classify papers using cited network.
+* *Ensemble* contains the approach to combine the above two results together to get a better performance.
+
+### Reference
+The implementation of CRF network is based on UGM toolkit by Mark Schmidt. https://www.cs.ubc.ca/~schmidtm/Software/UGM.html
+The idea of ensembling comes from *Relational Ensemble Classification* by Christine Preisach and Lars Schmidt-Thieme.
+ 
 Hopefully, our work will be of help to you! Please enjoy!
