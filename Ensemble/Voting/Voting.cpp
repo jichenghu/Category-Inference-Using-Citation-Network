@@ -68,7 +68,6 @@ int main()
 		int vote_label = voting(ptr, 0.2, 1, 0.9);
 		ptr->vote_label = vote_label;
 		if (ptr->if_test == 1) {
-			//printf("id:%d ,pl:%d %d, rl:%d, vl:%d\n", ptr->id, ptr->pred_label[0], ptr->pred_label[1], ptr->real_label, ptr->vote_label);
 			if (ptr->vote_label == ptr->real_label)
 				count++;
 		}
@@ -77,11 +76,5 @@ int main()
 	// Print the accuracy
 	double accu = (double)count/(double)total_test;
 	printf("%d right judgement in %d instances, accuracy is %lf\n", count, total_test, accu);
-	/*
-	ptr = nodes;
-	for (int i = 0; i < 100; i++) {
-		printf("%d %d %d %d\n", ptr->id, ptr->real_label, ptr->pred_label[0], ptr->pred_label[1], ptr->vote_label);
-	}
-	*/
 	return 0;
 }
