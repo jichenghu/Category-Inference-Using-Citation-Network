@@ -1,4 +1,4 @@
-This neural network uses the citation result and NaiveBayes result as input,the actual label as output.This neural network has three hidden layers, using regularization, Adam optimization method, learning rate is 7e-4, and trained 800 rounds.
+This neural network uses the **citation result** and **NaiveBayes result** as input,the actual label as output.This neural network has three hidden layers, using regularization, Adam optimization method, learning rate is 7e-4, and trained 800 rounds.
 
 The loss is : 0.006016
 
