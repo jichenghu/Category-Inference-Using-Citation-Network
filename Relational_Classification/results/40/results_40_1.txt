@@ -1,0 +1,6 @@
+Marginal:4131 of 19396 labels are correct,correct rate is 0.212982
+MAP:6079 of 19396 labels are correct,correct rate is 0.313415
+(paused)
+7758 of 19396 papers are used as test set,the rate is 0.399979
+Cond Marginal:5017 of 7758 labels are correct,correct rate is 0.646687
+Cond MAP:4582 of 7758 labels are correct,correct rate is 0.590616
