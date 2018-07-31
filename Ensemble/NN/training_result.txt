@@ -1,5 +1,0 @@
-The loss is : 0.000023
-
-The accuracy of this model in train_set is : 0.970733
-
-The accuracy of this model in test_set is : 0.801609
