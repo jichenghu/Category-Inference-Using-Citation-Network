@@ -301,11 +301,11 @@ int main()
 {
 	string filePath1 = "../Preprocessing/paper_labels.txt";
 	string filePath2 = "../Cora/PT.txt";
-	Datasets dataset = Datasets(filePath1, filePath2);
-	string outfile = "";
+	string filePath3 = "../Cora/PA.txt";
+	Datasets dataset = Datasets(filePath1, filePath2, filePath3);
 #ifdef TEST
 	double score[25] = { 0 };
-	outfile = "NaiveBayes_score.txt"
+	string outfile = "NaiveBayes_score.txt";
 	for (int i = 20; i <= 40; ++i)
 	{
 		for (int j = 0; j < 5; ++j)
@@ -320,30 +320,48 @@ int main()
 	ofstream out = ofstream(outfile);
 	for (int i = 0; i <= 20; ++i)
 	{
-		out << i + 20 << "\t" << score[i]\5 << endl;
+		out << i + 20 << "\t" << score[i]/5 << endl;
 	}
 	out.close();
 #endif
 
 #ifdef GETPROB
-	string trainFile = "train.txt";
-	string testFile = "test.txt";
-	outfile = "paper_real_label_prob.txt"
-	ifstream in = ifstream(trainFile);
-	assert(in.is_open());
-	int id;
-	while (in >> id)
+	string sets[] = {"-10%","-25%","-40%"};
+	string nums[] = {"_10_","_25_","_40_"};
+	string no[] = {"0","1","2","3","4","5","6","7","8","9"};
+	string path2 = "Sets";
+	string path = "res/";
+	string trainFile = "train";
+	string testFile = "test";
+	string outfile = "BAYES";
+	string type = ".csv";
+	string type2 = ".txt";
+	for(int i = 0; i < 3;++i)
 	{
-		trainSet.insert(id);
+		string tmp_path = path2+sets[i]+'/';
+		for(int j = 0;j < 10;++j)
+		{
+			ifstream in = ifstream(tmp_path + trainFile + no[j]+ type2);
+			trainSet.clear();
+			testSet.clear();
+			assert(in.is_open());
+			int id;
+			while (in >> id)
+			{
+				trainSet.insert(id);
+			}
+			in.close();
+			in = ifstream(tmp_path + testFile + no[j]+ type2);
+			assert(in.is_open());
+			while (in >> id)
+			{
+				testSet.insert(id);
+			}
+			in.close();
+			Bayes bayes = Bayes(dataset);
+			bayes.train();
+			bayes.storeLabelAndProb(path+outfile+nums[i]+no[j]+type);
+		}
 	}
-	in = ifstream(testFile);
-	assert(in.is_open());
-	while (in >> id)
-	{
-		testSet.insert(id);
-	}
-	Bayes bayes = Bayes(dataset);
-	bayes.train();
-	bayes.storeLabelAndProb(outfile);
 #endif
 }
